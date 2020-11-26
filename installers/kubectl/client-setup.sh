@@ -34,7 +34,7 @@ else
 fi
 
 # Creates the output directory for files
-OUTPUT_DIR="${HOME}/.grds/${GRDS_OPERATOR_NAMESPACE}"
+OUTPUT_DIR="${HOME}/.grds"
 install -d -m a-rwx,u+rwx "${OUTPUT_DIR}"
 
 if [ -f "${OUTPUT_DIR}/grds" ]
