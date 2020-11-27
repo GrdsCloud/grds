@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-operator
+  labels:
+    app.kubernetes.io/name: mysql-operator
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mysql-operator
+      vendor: grdscloud
+  replicas: 1
+  template:
+    metadata:
+      name: mysql-operator
+      labels:
+        app.kubernetes.io/name: mysql-operator
+        vendor: grdscloud
+    spec:
+      terminationGracePeriodSeconds: 10
+      serviceAccountName: mysql-operator
+      containers:
+        - name: operator
+          image: docker.io/grds/mysql-operator:v1.0.0
+          imagePullPolicy: Always
+          command:
+            - /manager
+          args:
+            - --enable-leader-election
+            - --use-env-config
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: DATABASE_IMAGE_PREFIX
+              value: docker.io/grds/mysql
+            - name: QFB_IMAGE_VERSION
+              value: v1.0.0
+            - name: BACKUP_TRIGGER_IMAGE
+              value: docker.io/grds/qfb-backup-job:$QFB_IMAGE_VERSION
+            - name: QFB_IMAGE_PREFIX
+              value: docker.io/grds/qfb-mysql
+            - name: LEADER_IMAGE
+              value: docker.io/grds/mysqlleader:v1.0.0
+          volumeMounts:
+            - name: localtime
+              mountPath: /etc/localtime
+            - name: logdir
+              mountPath: /var/log/operator
+        - name: apiserver
+          image: docker.io/grds/apiserver:v1.0.0
+          imagePullPolicy: Always
+          command:
+            - /apiserver
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: DEBUG
+              value: "true"
+      volumes:
+        - name: localtime
+          hostPath:
+            path: /usr/share/zoneinfo/Asia/Shanghai
+        - name: logdir
+          hostPath:
+            path: /apps/logs/grds/operator/
+            type: DirectoryOrCreate
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: mysql-operator
+              topologyKey: kubernetes.io/hostname
+      tolerations:
+        - effect: NoSchedule
+          key: grds/node
+          operator: Exists
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Exists
+        - effect: NoExecute
+          key: node.kubernetes.io/not-ready
+          operator: Exists
+          tolerationSeconds: 300
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: mysql-operator
+  labels:
+    app.kubernetes.io/name: mysql-operator
+spec:
+  selector:
+    app.kubernetes.io/name: mysql-operator
+    vendor: grdscloud
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+    - name: apiserver
+      protocol: TCP
+      port: 8443
+      targetPort: 8443

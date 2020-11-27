@@ -1,0 +1,20 @@
+apiVersion: mysql.grds.cloud/v1
+kind: MysqlCluster
+metadata:
+  name: mysqlcluster-sample
+spec:
+  clusterSpec:
+    version: "5.7"
+    mode: HACluster
+  databaseResource:
+    resources:
+      limits:
+        cpu: "1"
+        memory: "2Gi"
+      requests:
+        cpu: "0.5"
+        memory: "1Gi"
+    storage:
+      size: 21474836480
+  replicas: 2
+  slaveReplicas: 0
