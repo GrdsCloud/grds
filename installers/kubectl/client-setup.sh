@@ -13,20 +13,20 @@
 # limitations under the License.
 
 # This script should be run after the operator has been deployed
-GRDS_OPERATOR_NAMESPACE="${GRDS_OPERATOR_NAMESPACE:-grds}"
-GRDS_CLIENT_VERSION="${GRDS_CLIENT_VERSION:-v1.0.0}"
-GRDS_CLIENT_URL="https://github.com/GrdsCloud/grds/releases/download/${GRDS_CLIENT_VERSION}"
+SQUIDS_OPERATOR_NAMESPACE="${SQUIDS_OPERATOR_NAMESPACE:-squids}"
+SQUIDS_CLIENT_VERSION="${SQUIDS_CLIENT_VERSION:-v1.0.0}"
+SQUIDS_CLIENT_URL="https://github.com/squids-io/grds/releases/download/${SQUIDS_CLIENT_VERSION}"
 
-GRDS_CMD="${GRDS_CMD-kubectl}"
+SQUIDS_CMD="${SQUIDS_CMD-kubectl}"
 
 # Checks operating system and determines which binary to download
 UNAME_RESULT=$(uname)
 if [[ "${UNAME_RESULT}" == "Linux" ]]
 then
-    BIN_NAME="grds"
+    BIN_NAME="squidsctl"
 elif [[ "${UNAME_RESULT}" == "Darwin" ]]
 then
-    BIN_NAME="grds-mac"
+    BIN_NAME="squidsctl-mac"
 else
     echo "${UNAME_RESULT} is not supported, valid operating systems are: Linux, Darwin"
     echo "Exiting..."
@@ -34,39 +34,39 @@ else
 fi
 
 # Creates the output directory for files
-OUTPUT_DIR="${HOME}/.grds"
+OUTPUT_DIR="${HOME}/.squids"
 install -d -m a-rwx,u+rwx "${OUTPUT_DIR}"
 
-if [ -f "${OUTPUT_DIR}/grds" ]
+if [ -f "${OUTPUT_DIR}/squidsctl" ]
 then
-	echo "grds Client Binary detected at: ${OUTPUT_DIR}"
+	echo "squids Client Binary detected at: ${OUTPUT_DIR}"
 	echo "Updating Binary..."
 fi
 
 echo "Operating System found is ${UNAME_RESULT}..."
-echo "Downloading ${BIN_NAME} version: ${GRDS_CLIENT_VERSION}..."
-curl -Lo "${OUTPUT_DIR}/grds" "${GRDS_CLIENT_URL}/${BIN_NAME}"
-chmod +x "${OUTPUT_DIR}/grds"
+echo "Downloading ${BIN_NAME} version: ${SQUIDS_CLIENT_VERSION}..."
+curl -Lo "${OUTPUT_DIR}/squidsctl" "${SQUIDS_CLIENT_URL}/${BIN_NAME}"
+chmod +x "${OUTPUT_DIR}/squidsctl"
 
-# Check that the grds.tls secret exists
-if [ -z "$($GRDS_CMD get secret -n ${GRDS_OPERATOR_NAMESPACE} grds.tls)" ]
+# Check that the squids.tls secret exists
+if [ -z "$($SQUIDS_CMD get secret -n ${SQUIDS_OPERATOR_NAMESPACE} squids.tls)" ]
 then
-    echo "grds.tls Secret not found in namespace: ${GRDS_OPERATOR_NAMESPACE}"
+    echo "squids.tls Secret not found in namespace: ${SQUIDS_OPERATOR_NAMESPACE}"
     echo "Please ensure that the MySQL Operator has been installed."
     echo "Exiting..."
     exit 1
 fi
 
 # Restrict access to the target file before writing
-kubectl_get_private() { touch "$1" && chmod a-rwx,u+rw "$1" && $GRDS_CMD get > "$1" "${@:2}"; }
+kubectl_get_private() { touch "$1" && chmod a-rwx,u+rw "$1" && $SQUIDS_CMD get > "$1" "${@:2}"; }
 
-# Use the grds.tls secret to generate the client cert files
-kubectl_get_private "${OUTPUT_DIR}/client.crt" secret -n "${GRDS_OPERATOR_NAMESPACE}" grds.tls -o 'go-template={{ index .data "tls.crt" | base64decode }}'
-kubectl_get_private "${OUTPUT_DIR}/client.key" secret -n "${GRDS_OPERATOR_NAMESPACE}" grds.tls -o 'go-template={{ index .data "tls.key" | base64decode }}'
+# Use the squids.tls secret to generate the client cert files
+kubectl_get_private "${OUTPUT_DIR}/client.crt" secret -n "${SQUIDS_OPERATOR_NAMESPACE}" squids.tls -o 'go-template={{ index .data "tls.crt" | base64decode }}'
+kubectl_get_private "${OUTPUT_DIR}/client.key" secret -n "${SQUIDS_OPERATOR_NAMESPACE}" squids.tls -o 'go-template={{ index .data "tls.key" | base64decode }}'
 
-echo "grds client files have been generated, please add the following to your bashrc"
+echo "squids client files have been generated, please add the following to your bashrc"
 echo "export PATH=${OUTPUT_DIR}:\$PATH"
-echo "export GRDS_CA_CERT=${OUTPUT_DIR}/client.crt"
-echo "export GRDS_CLIENT_CERT=${OUTPUT_DIR}/client.crt"
-echo "export GRDS_CLIENT_KEY=${OUTPUT_DIR}/client.key"
-echo "export GRDS_NAMESPACE=${GRDS_OPERATOR_NAMESPACE}"
+echo "export SQUIDS_CA_CERT=${OUTPUT_DIR}/client.crt"
+echo "export SQUIDS_CLIENT_CERT=${OUTPUT_DIR}/client.crt"
+echo "export SQUIDS_CLIENT_KEY=${OUTPUT_DIR}/client.key"
+echo "export SQUIDS_NAMESPACE=${SQUIDS_OPERATOR_NAMESPACE}"
